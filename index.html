@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mehrab's Jewellery</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/assets/images/logo.jpeg">
+  <style>
+    :root {
+      --bg: #000000;
+      --panel: #ffffff;
+      --gold: #D4AF37;
+      --gold-light: #F5E6C8;
+      --muted: #bdbdbd;
+      --radius: 12px;
+      --max-w: 1100px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0;
+      font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto;
+      background:var(--bg);
+      color:var(--panel);
+      -webkit-font-smoothing:antialiased;
+    }
+    a { color:var(--gold); text-decoration:none; }
+    .container { max-width:var(--max-w); margin:0 auto; padding:20px; }
+
+    header { display:flex; align-items:center; gap:16px; padding:12px 0;
+      border-bottom:1px solid rgba(255,255,255,0.06); }
+    header img.logo { height:56px; width:56px; border-radius:10px; object-fit:cover; }
+    header h1 { margin:0; font-size:20px; }
+    nav { margin-left:auto; display:flex; gap:10px; }
+    nav button {
+      background:transparent; border:1px solid rgba(255,255,255,0.15);
+      color:#fff; padding:8px 12px; border-radius:8px;
+    }
+
+    .hero { display:flex; gap:20px; align-items:center; margin:18px 0; }
+    .hero .left { flex:1; }
+    .hero .right { width:240px; }
+    .card {
+      background:rgba(255,255,255,0.04);
+      padding:14px; border-radius:var(--radius);
+      border:1px solid rgba(212,175,55,0.15);
+    }
+
+    .products-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+      gap:16px;
+      margin-top:12px;
+    }
+
+    .product {
+      background:var(--panel);
+      color:#111;
+      padding:12px;
+      border-radius:12px;
+    }
+    .product img {
+      width:100%; height:180px; object-fit:cover; border-radius:8px;
+    }
+
+    .btn-gold {
+      background:linear-gradient(90deg,var(--gold),var(--gold-light));
+      color:#111; padding:10px 14px;
+      border-radius:10px; border:none; font-weight:600;
+    }
+
+    footer {
+      margin-top:30px; padding:20px 0;
+      border-top:1px solid rgba(255,255,255,0.06);
+      color:var(--muted); font-size:13px;
+    }
+
+    .modal-bg {
+      position:fixed; inset:0;
+      background:rgba(0,0,0,0.6);
+      display:none; justify-content:center; align-items:center; z-index:50;
+    }
+    .modal {
+      background:var(--panel); color:#111;
+      padding:18px; border-radius:12px; width:320px;
+    }
+
+    input, select, textarea {
+      width:100%; padding:8px; margin-top:8px;
+      border-radius:8px; border:1px solid #ccc;
+    }
+
+    .search { display:flex; gap:8px; margin-top:10px; }
+    .search input {
+      flex:1; padding:10px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:transparent; color:#fff;
+    }
+
+    @media(max-width:600px){
+      .hero { flex-direction:column; }
+      header h1 { font-size:18px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container" id="app">
+
+    <header>
+      <img src="/assets/images/logo.jpeg" class="logo">
+      <h1>Mehrab's Jewellery</h1>
+      <nav>
+        <button onclick="goto('home')">Home</button>
+        <button onclick="goto('products')">Products</button>
+        <button onclick="goto('gold')">Gold Price</button>
+        <button onclick="goto('calculator')">Calculator</button>
+        <button onclick="goto('contact')">Contact</button>
+        <button onclick="openAdmin()">Admin</button>
+      </nav>
+    </header>
+
+    <main id="view"></main>
+
+    <footer>
+      Mehrab's Jewellery • Lalchowk, Srinagar • Contact:
+      <a href="tel:+919541664542">9541664542</a> •
+      <a href="#" onclick="openWhatsApp()">Order via WhatsApp</a>
+    </footer>
+
+  </div>
+
+  <!-- ADMIN MODAL -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <h3>Admin Panel</h3>
+      <div id="adminArea"></div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn-gold" onclick="saveProducts()">Save</button>
+        <button onclick="closeAdmin()">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const PHONE = "9541664542";
+
+function goto(page){
+  history.pushState({}, "", "#"+page);
+  render();
+}
+window.onpopstate = ()=>render();
+
+let products = [
+  {id:"p1",name:"Golden Bridal Set",desc:"Premium gold bridal jewellery set.",weight:30,purity:22,making:200,image:"/assets/images/product1.jpeg"},
+  {id:"p2",name:"Royal Necklace",desc:"Luxury handcrafted necklace.",weight:25,purity:22,making:250,image:"/assets/images/product2.jpeg"},
+  {id:"p3",name:"Pearl Gold Combo",desc:"Elegant pearl and gold design.",weight:40,purity:22,making:180,image:"/assets/images/product3.jpeg"}
+];
+
+const saved = localStorage.getItem("mj_products");
+if(saved) products = JSON.parse(saved);
+
+function render(){
+  const hash = location.hash.replace("#","");
+  const view = document.getElementById("view");
+
+  if(hash==="products") view.innerHTML = productsHTML();
+  else if(hash==="contact") view.innerHTML = contactHTML();
+  else if(hash==="gold") view.innerHTML = goldHTML();
+  else if(hash==="calculator") view.innerHTML = calculatorHTML();
+  else view.innerHTML = homeHTML();
+}
+
+function homeHTML(){
+  return `
+    <section class="hero">
+      <div class="left">
+        <div class="card">
+          <h2 style="color:var(--gold)">Fine Jewellery • Mehrab's</h2>
+          <p style="color:var(--muted)">Premium designs • Kashmir’s trusted jeweller</p>
+          <div class="search">
+            <input placeholder="Search products..." oninput="doSearch(this.value)">
+            <button class="btn-gold" onclick="goto('products')">Browse</button>
+          </div>
+        </div>
+      </div>
+      <div class="right">
+        <img src="/assets/images/product2.jpeg" style="width:100%;border-radius:12px;">
+      </div>
+    </section>
+
+    <h3>Featured</h3>
+    <div class="products-grid">
+      ${products.slice(0,3).map(p=>productCard(p)).join("")}
+    </div>
+  `;
+}
+
+function productsHTML(){
+  return `
+    <h2>Our Jewellery</h2>
+    <div class="products-grid">
+      ${products.map(p=>productCard(p)).join("")}
+    </div>
+  `;
+}
+
+function productCard(p){
+  return `
+  <div class="product card">
+    <img src="${p.image}">
+    <h3>${p.name}</h3>
+    <p>${p.desc}</p>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <button class="btn-gold" onclick='openProduct("${p.id}")'>View</button>
+      <button onclick='orderWhatsApp("${p.id}")'>Order</button>
+    </div>
+  </div>`;
+}
+
+function openProduct(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+
+  document.getElementById("view").innerHTML = `
+    <div class="card">
+      <img src="${p.image}" style="width:100%;border-radius:12px;">
+      <h2>${p.name}</h2>
+      <p>${p.desc}</p>
+      <p><strong>${p.weight} g • ${p.purity}K</strong></p>
+      <button class="btn-gold" onclick='orderWhatsApp("${p.id}")'>Order via WhatsApp</button>
+    </div>
+  `;
+}
+
+function contactHTML(){
+  return `
+    <h2>Contact Us</h2>
+    <div class="card">
+      <p><strong>Mehrab's Jewellery</strong></p>
+      <p>Lalchowk, near Dastgeer Sahab Asthan</p>
+      <p>Srinagar, Kashmir</p>
+      <p><a href="tel:+919541664542">Call: 9541664542</a></p>
+      <button class="btn-gold" onclick="openWhatsApp()">Message on WhatsApp</button>
+    </div>
+  `;
+}
+
+function goldHTML(){
+  return `
+    <h2>Gold Price</h2>
+    <div class="card">
+      <p>Today's gold rate:</p>
+      <h1 id="goldPrice">--</h1>
+      <p style="color:var(--muted)">Simulated rate (can add real API later).</p>
+    </div>
+  `;
+}
+
+function calculatorHTML(){
+  return `
+    <h2>Gold Calculator</h2>
+    <div class="card">
+      <label>Gold Rate (per gram)</label>
+      <input id="gr" value="6500">
+      <label>Weight (g)</label>
+      <input id="gw" value="10">
+      <button class="btn-gold" onclick="calc()">Calculate</button>
+      <div id="res" style="margin-top:12px;"></div>
+    </div>
+  `;
+}
+
+function calc(){
+  const r = parseFloat(gr.value);
+  const w = parseFloat(gw.value);
+  const total = r * w;
+  res.innerHTML = `<h3>Total: ₹${total}</h3>`;
+}
+
+function doSearch(q){
+  q = q.toLowerCase();
+  let results = products.filter(p => p.name.toLowerCase().includes(q));
+  document.getElementById("view").innerHTML = `
+    <h2>Search Results</h2>
+    <div class="products-grid">
+      ${results.map(p=>productCard(p)).join("")}
+    </div>
+  `;
+}
+
+function openWhatsApp(){
+  const text = encodeURIComponent("Hi Mehrab, I want to ask about jewellery.");
+  window.open("https://wa.me/91"+PHONE+"?text="+text, "_blank");
+}
+
+function orderWhatsApp(id){
+  const p = products.find(x=>x.id===id);
+  const text = encodeURIComponent("Hello, I want to order: "+p.name);
+  window.open("https://wa.me/91"+PHONE+"?text="+text, "_blank");
+}
+
+function openAdmin(){
+  modalBg.style.display="flex";
+  adminArea.innerHTML = `
+    <label>Password</label>
+    <input id="admPass" type="password">
+    <button class="btn-gold" onclick="unlockAdmin()">Unlock</button>
+  `;
+}
+
+function closeAdmin(){
+  modalBg.style.display="none";
+}
+
+function unlockAdmin(){
+  if(admPass.value==="admin"){
+    showAdminControls();
+  } else alert("Wrong password");
+}
+
+function showAdminControls(){
+  adminArea.innerHTML = `
+    <label>Edit product JSON</label>
+    <textarea id="prodJson" style="height:200px;">${JSON.stringify(products,null,2)}</textarea>
+  `;
+}
+
+function saveProducts(){
+  products = JSON.parse(prodJson.value);
+  localStorage.setItem("mj_products", JSON.stringify(products));
+  alert("Saved!");
+  closeAdmin();
+  render();
+}
+
+render();
+</script>
+
+<script>
+if ('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js');
+}
+</script>
+
+</body>
+</html>
